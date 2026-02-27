@@ -182,9 +182,9 @@ Markdownのコードブロック（```openscad ... ```）で囲んでOpenSCADコ
 
 
 def enhance_prompt(user_input: str) -> str:
-    """ステージ1: ユーザーの曖昧な入力をプロ仕様の設計要件書に変換"""
+    """ステージ1: ユーザーの曖昧な入力をプロ仕様の設計要件書に変換（コスト最適化: mini使用）"""
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",  # テキスト構造化はminiで十分。コスト16分の1
         messages=[
             {"role": "system", "content": ENHANCER_PROMPT},
             {"role": "user", "content": user_input}
