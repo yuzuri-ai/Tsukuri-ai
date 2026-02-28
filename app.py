@@ -45,7 +45,7 @@ def save_order(description: str, stl_filename: str, scad_code: str):
     return order_id
 
 # --- 設定・初期化 ---
-load_dotenv()
+load_dotenv(override=True)
 st.set_page_config(page_title="TsukuriAI - 思いのままに造ろう", page_icon="⬡", layout="wide")
 
 # =====================================================
@@ -97,8 +97,23 @@ textarea:focus {
 </style>
 """, unsafe_allow_html=True)
 
-# APIクライアント
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# APIクライアントの取得
+def get_api_key():
+    key = None
+    # 1. 環境変数 (OSや.env) から取得
+    if os.environ.get("OPENAI_API_KEY"):
+        key = os.environ.get("OPENAI_API_KEY")
+    # 2. Streamlit Secrets から取得 (Streamlit Cloud/Railway等)
+    elif "OPENAI_API_KEY" in st.secrets:
+        key = st.secrets["OPENAI_API_KEY"]
+        
+    if key:
+        # 空白やクォーテーションが含まれている場合の対策
+        return key.strip().strip('"').strip("'")
+    return None
+
+api_key = get_api_key()
+client = OpenAI(api_key=api_key) if api_key else None
 
 # =====================================================
 # バックエンドロジック — 2段階AIパイプライン
@@ -611,6 +626,17 @@ def main():
     </body></html>
     """
     components.html(workspace_header, height=220, scrolling=False)
+
+    # APIキーの診断
+    if not api_key:
+        st.error("⚠️ OpenAI APIキーが見つかりません。`.env`ファイルまたはStreamlitのSecrets設定を確認してください。")
+        with st.expander("🛠️ 接続のヒント"):
+            st.markdown("""
+            1. ローカル開発の場合: プロジェクト直下に `.env` ファイルを作成し、`OPENAI_API_KEY=your_key_here` と記述してください。
+            2. Railway等の場合: Variables（環境変数）に `OPENAI_API_KEY` を追加してください。
+            3. Streamlit Cloudの場合: Secrets設定に `OPENAI_API_KEY` を追加してください。
+            """)
+        return
 
     # テンプレート
     templates = [
